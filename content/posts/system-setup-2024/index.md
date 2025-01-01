@@ -3,7 +3,7 @@ title = "時隔一年的桌面 Guix System 安裝"
 author = ["Hilton Chain"]
 description = "再有下次，怕是成本不低了。"
 date = 2024-02-24T01:14:00+08:00
-lastmod = 2024-09-30T18:44:00+08:00
+lastmod = 2025-01-01T10:10:00+08:00
 tags = ["Guix"]
 categories = ["notes"]
 draft = false
@@ -273,7 +273,7 @@ guix pull
 
 更新後，當前用戶的 Guix 程序會被鏈接到 ~/.config/guix/current。例如對於 root 用戶， `which guix` 命令的結果應爲：
 
-```shell
+```text
 /root/.config/guix/current/bin/guix
 ```
 
@@ -900,21 +900,31 @@ Started:
  + guix-daemon
  + root
  + root-file-system
+Running timers:
+ + log-rotation
 One-shot:
  * host-name
  * user-homes
 ```
 
-常規服務狀態信息格式不同，如 `herd status bluetooth` ：
+常規服務狀態信息格式不同，如 `herd status dbus` ：
 
 ```text
-Status of bluetooth:
-  It is running since 03:01:10 PM (8 hours ago).
-  Running value is 1341.
+● Status of dbus:
+  It is running since Fri 27 Dec 2024 01:04:52 PM HKT (25 hours ago).
+  Main PID: 3151
+  Command: /gnu/store/r799iglam0gk9q35j56239wcdg9xzhwg-dbus-1.15.8/bin/dbus-daemon --nofork --session --address=unix:path=/run/user/1000/bus
   It is enabled.
-  Provides (bluetooth).
-  Requires (dbus-system udev).
+  Provides: dbus
   Will be respawned.
+  Log file: /home/hako/.local/state/shepherd/dbus.log
+
+Recent messages (use '-n' to view more or less):
+  2024-12-27 13:05:14
+  2024-12-27 13:05:14 ** (/gnu/store/cnjrzbqf9rm48q2v3r60pr3qm45n94pg-xdg-desktop-portal-1.16.0/libexec/xdg-desktop-portal:4004): WARNING **: 13:05:14.643: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+  2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Activating service name='org.freedesktop.impl.portal.desktop.wlr' requested by ':1.12' (uid=1000 pid=4004 comm="/gnu/store/cnjrzbqf9rm48q2v3r60pr3qm45n94pg-xdg-de")
+  2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Successfully activated service 'org.freedesktop.impl.portal.desktop.wlr'
+  2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Successfully activated service 'org.freedesktop.portal.Desktop'
 ```
 
 `herd log` 或 `herd log root` 顯示服務的狀態變化記錄：
@@ -946,10 +956,37 @@ You must be kidding.
 The root service is used to operate on shepherd itself.
 ```
 
-`herd doc <服務> list-actions` 則可列出指定服務的自定義操作，如 `herd doc root list-actions` ：
+`herd doc <服務> list-actions` 則可列出指定服務的自定義操作，如 `herd doc guix-daemon list-actions` ：
 
 ```text
-root (help status halt power-off load eval unload reload daemonize restart)
+set-http-proxy:
+  Change the HTTP(S) proxy used by 'guix-daemon' and restart it.
+
+discover:
+  Enable or disable substitute servers discovery and restart the
+'guix-daemon'.
+```
+
+自定義操作在 `herd status` 輸出中亦有列出，下爲 `herd status guix-daemon` 結果，注意「Custom actions」一欄：
+
+```text
+● Status of guix-daemon:
+  It is running since Fri 27 Dec 2024 11:18:03 AM HKT (27 hours ago).
+  Main PID: 1231
+  Command: /gnu/store/2j1d7mhackfhs8d80pv0iv7h4l5g4jc2-guix-1.4.0-30.790c9ff/bin/guix-daemon --build-users-group guixbuild --max-silent-time 3600 --timeout 86400 --log-compression gzip --discover=no --substitute-urls "https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://substitute.boiledscript.com https://substitutes.nonguix.org"
+  It is enabled.
+  Provides: guix-daemon
+  Requires: user-processes
+  Custom actions: set-http-proxy discover
+  Will be respawned.
+  Log file: /var/log/guix-daemon.log
+
+Recent messages (use '-n' to view more or less):
+  2024-12-28 13:18:35 spurious SIGPOLL
+  2024-12-28 13:18:35 spurious SIGPOLL
+  2024-12-28 13:19:09 spurious SIGPOLL
+  2024-12-28 13:31:34 accepted connection from pid 13989, user hako
+  2024-12-28 14:24:45 accepted connection from pid 20569, user hako
 ```
 
 

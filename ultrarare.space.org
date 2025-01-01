@@ -13,6 +13,7 @@
 :ID:       4fd743cf-2dcc-4b4f-af9e-88fd1e145e69
 :END:
 :LOGBOOK:
+- State "DONE"       from "DONE"       [2025-01-01 Wed 10:10]
 - State "DONE"       from "DONE"       [2024-09-30 Mon 18:44]
 - State "DONE"       from "DONE"       [2024-09-22 Sun 20:29]
 - State "DONE"       from "DOING"      [2024-02-27 Tue 16:17]
@@ -147,9 +148,9 @@ Guix 程序是由多個頻道組成的（默認僅包含官方倉庫一個頻道
 Guix 的頻道只負責分發定義，而不包含產物，但因爲產物的輸出路徑唯一，且在構建前已知，也就有了從網絡上獲取已構建產物作爲替代的機制。
 
 例如用我當前的 Guix 程序構建 GNU Hello，產物爲：
-#+begin_src text
+#+begin_example
 /gnu/store/6fbh8phmp3izay6c0dpggpxhcjn4xlm5-hello-2.12.1
-#+end_src
+#+end_example
 
 如果替代服務器上存在這個產物，Guix 就可以直接下載，反之則在本地構建。
 
@@ -269,9 +270,9 @@ Nonguix 也有替代服務器，不過 Guix 在傳輸產物時必須簽名與驗
 #+end_src
 
 更新後，當前用戶的 Guix 程序會被鏈接到 ~/.config/guix/current。例如對於 root 用戶， =which guix= 命令的結果應爲：
-#+begin_src shell
+#+begin_example
 /root/.config/guix/current/bin/guix
-#+end_src
+#+end_example
 
 如果沒有類似結果，嘗試重新[[id:0e760bfd-bc33-4d3b-ac21-460c82bc0b59][登錄]]或執行 =hash guix= ，確保之後會運行的 Guix 程序爲 ~/.config/guix/current/bin/guix 既可。
 
@@ -287,7 +288,7 @@ Nonguix 也有替代服務器，不過 Guix 在傳輸產物時必須簽名與驗
 因此我計劃在硬盤上創建兩個分區：256MiB 用作 EFI 系統分區，剩餘部分用以 LUKS 加密。
 
 分區使用 fdisk，結果如下：
-#+begin_src text
+#+begin_example
   Disk /dev/nvme0n1: 1.82 TiB, 2000398934016 bytes, 3907029168 sectors
   Disk model: Samsung SSD 970 EVO Plus 2TB
   Units: sectors of 1 * 512 = 512 bytes
@@ -299,7 +300,7 @@ Nonguix 也有替代服務器，不過 Guix 在傳輸產物時必須簽名與驗
   Device          Start        End    Sectors  Size Type
   /dev/nvme0n1p1   2048     526335     524288  256M EFI System
   /dev/nvme0n1p2 526336 3907028991 3906502656  1.8T Linux filesystem
-#+end_src
+#+end_example
 
 分區過程中可能會注意到一些像是「Linux root (x86-64)」的類型，這些類型來自 [[https://uapi-group.org/specifications/specs/discoverable_partitions_specification/][Discoverable Partitions Specification]]，用於啓動時自動掛載工具，除此同 fdisk 默認「Linux filesystem」無異。
 
@@ -313,7 +314,7 @@ Nonguix 也有替代服務器，不過 Guix 在傳輸產物時必須簽名與驗
 :ID:       5a0400dc-f389-4f42-84c4-b454b8f52709
 :END:
 在 =cryptsetup --help= 輸出尾端可以看到各項參數預設。
-#+begin_src text
+#+begin_example
   <...>
   Default compiled-in metadata format is LUKS2 (for luksFormat action).
 
@@ -328,7 +329,7 @@ Nonguix 也有替代服務器，不過 Guix 在傳輸產物時必須簽名與驗
           plain: aes-cbc-essiv:sha256, Key: 256 bits, Password hashing: ripemd160
           LUKS: aes-xts-plain64, Key: 256 bits, LUKS header hashing: sha256, RNG: /dev/urandom
           LUKS: Default keysize with XTS mode (two internal keys) will be doubled.
-#+end_src
+#+end_example
 
 預設對我來說已經足夠好了，不過 XTS 模式[[https://en.wikipedia.org/wiki/Disk_encryption_theory#XTS_weaknesses][缺乏數據驗證]]，建議配合自帶數據校驗的文件系統使用，正好我之後會用 Btrfs。
 
@@ -368,14 +369,14 @@ GRUB 會在開機時解鎖 LUKS 分區，但使用的鍵盤佈局卻可能是 QW
 #+end_src
 
 由此創建的 Btrfs 子卷佈局如下，子卷名可以是任何合法文件名， =@= 在此沒有特殊含義：
-#+begin_src text
+#+begin_example
   /media/encrypted/
   ├── @Data
   ├── @Home
   ├── @Snapshot
   └── @System
       └── @Guix
-#+end_src
+#+end_example
 
 我會將 =@System/@Guix= 掛載到 /， =@Data= 掛載到 /var/lib， =@Home= 掛載到 /home，而先前設置的 EFI 系統分區則會被掛載到 /efi。
 
@@ -816,9 +817,9 @@ Happy hacking！
 :ID:       93f8a9c7-aa95-49e6-bbaf-642303d1ae72
 :END:
 UEFI 系統中使用 GRUB 作爲引導加載器時，GNU/Linux 啓動流程大致如下：
-#+begin_src text
-UEFI -> GRUB（核心鏡像 -> 配置文件 + 模塊）-> Linux + initrd -> PID 1
-#+end_src
+#+begin_example
+  UEFI -> GRUB（核心鏡像 -> 配置文件 + 模塊）-> Linux + initrd -> PID 1
+#+end_example
 
 UEFI 標準支持使用 FAT 文件系統的 EFI 系統分區，所以 GRUB 核心鏡像要被安裝到這樣一個文件系統。
 
@@ -859,31 +860,41 @@ Shepherd 在認證上依賴文件系統的權限管理能力。比如 Guix Syste
 herd 的語法爲： =herd ACTION [SERVICE [OPTIONS...]]=
 
 =herd status= 顯示指定 Shepherd 服務狀態信息，省略服務時則顯示自身信息，Shepherd 自身也叫 root 服務，所以 =herd status root= 會輸出相同結果，如下（有省略）：
-#+begin_src text
+#+begin_example
   Started:
    + bluetooth
    + file-systems
    + guix-daemon
    + root
    + root-file-system
+  Running timers:
+   + log-rotation
   One-shot:
    ,* host-name
    ,* user-homes
-#+end_src
+#+end_example
 
-常規服務狀態信息格式不同，如 =herd status bluetooth= ：
-#+begin_src text
-  Status of bluetooth:
-    It is running since 03:01:10 PM (8 hours ago).
-    Running value is 1341.
+常規服務狀態信息格式不同，如 =herd status dbus= ：
+#+begin_example
+  ● Status of dbus:
+    It is running since Fri 27 Dec 2024 01:04:52 PM HKT (25 hours ago).
+    Main PID: 3151
+    Command: /gnu/store/r799iglam0gk9q35j56239wcdg9xzhwg-dbus-1.15.8/bin/dbus-daemon --nofork --session --address=unix:path=/run/user/1000/bus
     It is enabled.
-    Provides (bluetooth).
-    Requires (dbus-system udev).
+    Provides: dbus
     Will be respawned.
-#+end_src
+    Log file: /home/hako/.local/state/shepherd/dbus.log
+
+  Recent messages (use '-n' to view more or less):
+    2024-12-27 13:05:14
+    2024-12-27 13:05:14 ** (/gnu/store/cnjrzbqf9rm48q2v3r60pr3qm45n94pg-xdg-desktop-portal-1.16.0/libexec/xdg-desktop-portal:4004): WARNING **: 13:05:14.643: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+    2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Activating service name='org.freedesktop.impl.portal.desktop.wlr' requested by ':1.12' (uid=1000 pid=4004 comm="/gnu/store/cnjrzbqf9rm48q2v3r60pr3qm45n94pg-xdg-de")
+    2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Successfully activated service 'org.freedesktop.impl.portal.desktop.wlr'
+    2024-12-27 13:05:14 dbus-daemon[3151]: [session uid=1000 pid=3151 pidfd=4] Successfully activated service 'org.freedesktop.portal.Desktop'
+#+end_example
 
 =herd log= 或 =herd log root= 顯示服務的狀態變化記錄：
-#+begin_src text
+#+begin_example
   23 Feb 2024 15:01:17    service root is being started
   23 Feb 2024 15:01:17    service root is running
   23 Feb 2024 15:01:17    service pipewire is being started
@@ -896,22 +907,48 @@ herd 的語法爲： =herd ACTION [SERVICE [OPTIONS...]]=
   23 Feb 2024 15:01:17    service gpg-agent is running
   23 Feb 2024 15:01:17    service dbus is being started
   23 Feb 2024 15:01:17    service dbus is running
-#+end_src
+#+end_example
 
 其餘基礎操作爲 =herd start <服務>= 、 =herd stop <服務>= 、 =herd restart <服務>= 、 =herd enable <服務>= 和 =herd disable <服務>= ，分別爲啓動、停止、重啓、啓用、禁用服務。重啓服務的邏輯是停止服務 + 啓動服務，所以重啓 root 服務是不可能的，下爲 =herd restart root= 輸出：
-#+begin_src text
+#+begin_example
 You must be kidding.
-#+end_src
+#+end_example
 
 =herd doc= 顯示服務描述，例如 =herd doc root= 結果如下：
-#+begin_src text
+#+begin_example
   The root service is used to operate on shepherd itself.
-#+end_src
+#+end_example
 
-=herd doc <服務> list-actions= 則可列出指定服務的自定義操作，如 =herd doc root list-actions= ：
-#+begin_src text
-  root (help status halt power-off load eval unload reload daemonize restart)
-#+end_src
+=herd doc <服務> list-actions= 則可列出指定服務的自定義操作，如 =herd doc guix-daemon list-actions= ：
+#+begin_example
+  set-http-proxy:
+    Change the HTTP(S) proxy used by 'guix-daemon' and restart it.
+
+  discover:
+    Enable or disable substitute servers discovery and restart the
+  'guix-daemon'.
+#+end_example
+
+自定義操作在 =herd status= 輸出中亦有列出，下爲 =herd status guix-daemon= 結果，注意「Custom actions」一欄：
+#+begin_example
+  ● Status of guix-daemon:
+    It is running since Fri 27 Dec 2024 11:18:03 AM HKT (27 hours ago).
+    Main PID: 1231
+    Command: /gnu/store/2j1d7mhackfhs8d80pv0iv7h4l5g4jc2-guix-1.4.0-30.790c9ff/bin/guix-daemon --build-users-group guixbuild --max-silent-time 3600 --timeout 86400 --log-compression gzip --discover=no --substitute-urls "https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://substitute.boiledscript.com https://substitutes.nonguix.org"
+    It is enabled.
+    Provides: guix-daemon
+    Requires: user-processes
+    Custom actions: set-http-proxy discover
+    Will be respawned.
+    Log file: /var/log/guix-daemon.log
+
+  Recent messages (use '-n' to view more or less):
+    2024-12-28 13:18:35 spurious SIGPOLL
+    2024-12-28 13:18:35 spurious SIGPOLL
+    2024-12-28 13:19:09 spurious SIGPOLL
+    2024-12-28 13:31:34 accepted connection from pid 13989, user hako
+    2024-12-28 14:24:45 accepted connection from pid 20569, user hako
+#+end_example
 
 ** 參考
 + [[https://en.wikipedia.org/wiki/Booting_process_of_Linux][Booting process of Linux - Wikipedia]]
