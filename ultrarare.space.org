@@ -13,6 +13,7 @@
 :ID:       4fd743cf-2dcc-4b4f-af9e-88fd1e145e69
 :END:
 :LOGBOOK:
+- State "DONE"       from "DONE"       [2025-01-16 Thu 23:06]
 - State "DONE"       from "DONE"       [2025-01-01 Wed 10:10]
 - State "DONE"       from "DONE"       [2024-09-30 Mon 18:44]
 - State "DONE"       from "DONE"       [2024-09-22 Sun 20:29]
@@ -484,7 +485,7 @@ GRUB 會在開機時解鎖 LUKS 分區，但使用的鍵盤佈局卻可能是 QW
 配置文件可以是任何名字，也可以保存到任意位置，爲了指代方便，本文選擇 /etc/config.scm。
 #+begin_src scheme
   ;; /etc/config.scm 由此開始：
-  ;; Guix 頻道中的功能，是以模塊的形式提供的。
+  ;; Guix 可用功能由模塊提供，模塊又由各頻道提供。
   (use-modules (gnu)
                (guix channels)
                (gnu packages fonts)
@@ -494,88 +495,80 @@ GRUB 會在開機時解鎖 LUKS 分區，但使用的鍵盤佈局卻可能是 QW
                (nongnu system linux-initrd)
                (rosenthal bootloader grub))
 
-  ;; https://guix.gnu.org/manual/devel/en/guix.html#Using-the-Configuration-System
-  ;; https://guix.gnu.org/manual/devel/en/guix.html#operating_002dsystem-Reference
   (operating-system
     (host-name "dorphine")
     (timezone "Asia/Hong_Kong")
     (locale "en_US.utf8")
 
-    ;; linux 是原始的 Linux 內核，包含使用非自由固件的驅動及非自由固件的加載功能，
-    ;; linux-firmware 是非自由固件，二者在 (nongnu packages linux) 定義。
-    ;; microcode-initrd 會創建一個包含 AMD 與 Intel 非自由微碼更新的 initrd，在
-    ;; (nongnu system linux-initrd) 定義。
+    ;; 非自由固件與微碼更新
+    ;; linux 和 linux-firmware 由 (nongnu packages linux) 提供，
+    ;; microcode-initrd 由 (nongnu system linux-initrd) 提供。
     (kernel linux)
     (firmware (list linux-firmware))
     (initrd microcode-initrd)
 
-    ;; ;; 控制檯鍵盤佈局配置
-    ;; (keyboard-layout
-    ;;  ;; https://guix.gnu.org/manual/devel/en/guix.html#Keyboard-Layout
-    ;;  (keyboard-layout "us" "dvorak" #:options (list "ctrl:nocaps")))
+    ;; 鍵盤佈局（控制檯）
+    #;(keyboard-layout
+       (keyboard-layout "us" "dvorak" #:options (list "ctrl:nocaps")))
 
-    ;; grub-efi-luks2-bootloader 是一個支持 Argon2 的 GRUB 引導加載器變體，在
-    ;; (rosenthal bootloader grub) 定義。
+    ;; grub-efi-luks2-bootloader 由 (rosenthal bootloader grub) 提供，支持 Argon2。
     (bootloader
-     ;; https://guix.gnu.org/manual/devel/en/guix.html#Bootloader-Configuration
      (bootloader-configuration
       (bootloader grub-efi-luks2-bootloader)
-      ;; ;; 引導加載器鍵盤佈局配置
-      ;; ;; 這裏的第一個 keyboard-layout 是 bootloader-configuration 配置
-      ;; ;; 的一部分，第二個則是 bootloader 配置之前出現的同名配置。
-      ;; (keyboard-layout keyboard-layout)
+      ;; 鍵盤佈局（引導加載器）
+      ;; 第一個 keyboard-layout 用於構造 bootloader-configuration，
+      ;; 第二個則是先前出現的同名配置。
+      #;(keyboard-layout keyboard-layout)
       (targets (list "/efi"))))
 
     (mapped-devices
-     ;; https://guix.gnu.org/manual/devel/en/guix.html#Mapped-Devices
      (list (mapped-device
             (source "/dev/nvme0n1p2")
             (target "encrypted")
             (type luks-device-mapping))))
 
     (file-systems
-     ;; https://guix.gnu.org/manual/devel/en/guix.html#File-Systems
      (append (list (file-system
-                     (type "fat")
+                     (device "/dev/nvme0n1p1")
                      (mount-point "/efi")
-                     (device "/dev/nvme0n1p1"))
+                     (type "fat"))
                    (file-system
-                     (type "btrfs")
-                     (mount-point "/")
                      (device "/dev/mapper/encrypted")
+                     (mount-point "/")
+                     (type "btrfs")
                      (options "compress=zstd,subvol=@System/@Guix")
-                     ;; 這裏的 mapped-devices 是 file-systems 配置之前出現的同名配置。
+                     ;; 這裏的 mapped-devices 是先前出現的同名配置。
                      (dependencies mapped-devices))
                    (file-system
-                     (type "btrfs")
-                     (mount-point "/var/lib")
                      (device "/dev/mapper/encrypted")
+                     (mount-point "/var/lib")
+                     (type "btrfs")
                      (options "compress=zstd,subvol=@Data")
                      (check? #f)
                      (dependencies mapped-devices))
                    (file-system
-                     (type "btrfs")
-                     (mount-point "/home")
                      (device "/dev/mapper/encrypted")
+                     (mount-point "/home")
+                     (type "btrfs")
                      (options "compress=zstd,subvol=@Home")
                      (check? #f)
                      (dependencies mapped-devices)))
              ;; %base-file-systems 包含一些用戶通常不會主動配置的文件系統，需要注
              ;; 意的是 % 其實並沒有任何特殊含義。
-             ;; 操作系統的 file-systems 配置只需要一個列表，所以上面另外創建了一個
-             ;; 列表，再用 append 把兩個列表合爲一個。
+             ;; 操作系統的 file-systems 配置只需要一個列表，所以上面用 list 另外創
+             ;; 建了一個列表，再用 append 把兩個列表合爲一個。
              %base-file-systems))
 
     (users
-     ;; https://guix.gnu.org/manual/devel/en/guix.html#User-Accounts
      (append (list (user-account
                     (name "myuser")
                     (group "users")
-                    (supplementary-groups (list "audio" "video" "wheel"))))
+                    (supplementary-groups (list "audio" "video" "netdev" "wheel"))))
              %base-user-accounts))
 
-    ;; font-google-noto 是一套支持所有語言的字體，由四個軟件包提供，其中 -emoji 爲
-    ;; 表情符號，-sans-cjk 和 -serif-cjk 則包含漢字。
+    ;; Noto 是一套支持所有語言的字體，在 Guix 中分爲四個軟件包由
+    ;; (gnu packages fonts) 提供，其中 font-google-noto-emoji 爲表情符號，
+    ;; font-google-noto-sans-cjk 和 font-google-noto-serif-cjk 包含漢字。
     (packages
      (append (list font-google-noto
                    font-google-noto-emoji
@@ -585,30 +578,23 @@ GRUB 會在開機時解鎖 LUKS 分區，但使用的鍵盤佈局卻可能是 QW
 
     (services
      (append
-      ;; https://guix.gnu.org/manual/devel/en/guix.html#Desktop-Services
-      ;; https://guix.gnu.org/manual/devel/en/guix.html#X-Window
       (list (service gnome-desktop-service-type))
       (modify-services %desktop-services
         ;; modify-services 接受一個服務列表，其結果也是一個服務列表。
-        ;; 將 %desktop-services 中 gdm-service-type 種類服務的原有配置綁定到
-        ;; config（這個名字可以隨便起），「=>」 後面是 gdm-service-type 的新配置。
-        (gdm-service-type
-         config => (gdm-configuration
-                    ;; gdm-service-type 的配置就是一個 gdm-configuration，
-                    ;; 同種結構可以繼承。
-                    (inherit config)
-                    ;; (xorg-configuration
-                    ;;  ;; https://guix.gnu.org/manual/devel/en/guix.html#index-Xorg_002c-configuration
-                    ;;  (xorg-configuration
-                    ;;   ;; Xorg 鍵盤佈局配置
-                    ;;   (keyboard-layout keyboard-layout)))
-                    (wayland? #t)))
-        ;; https://guix.gnu.org/manual/devel/en/guix.html#index-guix_002dservice_002dtype
+        ;; 將 %desktop-services 中 gdm-service-type 原有配置綁定到 config（這個名
+        ;; 字可以隨便起），「=>」 後面是 gdm-service-type 新配置。
+        #;(gdm-service-type
+           config => (gdm-configuration
+                      ;; 同種結構可以繼承。
+                      (inherit config)
+                      ;; 鍵盤佈局（Xorg）
+                      (xorg-configuration
+                       (xorg-configuration
+                        (keyboard-layout keyboard-layout)))))
         (guix-service-type
          config => (guix-configuration
                     (inherit config)
                     (authorized-keys
-                     ;; https://guix.gnu.org/manual/devel/en/guix.html#G_002dExpressions
                      (append (list (plain-file
                                     "nonguix-signing-key.pub" ;Nonguix 公鑰文件內容。
                                     "(public-key (ecc (curve Ed25519) (q #C1FD53E5D4CE971933EC50C9F307AE2171A2D3B52C804642A7A35F84F3A4EA98#)))"))
@@ -639,8 +625,8 @@ GRUB 會在開機時解鎖 LUKS 分區，但使用的鍵盤佈局卻可能是 QW
                               "7677db76330121a901604dfbad19077893865f35"
                               (openpgp-fingerprint
                                "13E7 6CD6 E649 C28C 3385  4DF5 5E5A A665 6149 17F7"))))))
-                    ;; ;; 代理設置
-                    ;; (http-proxy "http://127.0.0.1:1080")
+                    ;; 代理設置
+                    #;(http-proxy "http://127.0.0.1:1080")
                     (substitute-urls
                      (append (list "https://mirror.sjtu.edu.cn/guix")
                              %default-substitute-urls
@@ -665,8 +651,6 @@ Guix System LiveCD 的解決方案是 [[https://guix.gnu.org/manual/devel/en/gui
 
 爲了方便在新系統中使用，可以把 [[id:c001599b-9683-4cbd-b88c-71ac0170b79f][Guix System]] 的配置文件放進安裝路徑：
 #+begin_src shell
-  # /etc/guix 會存儲私鑰，所以有權限要求
-  mkdir --mode=0511 --parents /mnt/etc/guix
   cp {,/mnt}/etc/config.scm
 #+end_src
 
